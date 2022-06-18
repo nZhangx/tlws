@@ -6,7 +6,7 @@ Most systems still follow the rules they did thirty years ago;
 in particular,
 most web servers still handle the same kinds of messages in the same way.
 
-## Background
+## Sockets
 
 Pretty much every program on the web
 runs on a family of communication standards called Internet Protocol (IP).
@@ -29,6 +29,117 @@ that uniquely identifies the socket on the host machine.
 then a port number is like an extension.)
 Ports 0-1023 are reserved for the operating system's use;
 anyone else can use the remaining ports.
+
+> ### Character Encodings
+>
+> Once upon a time, computers stored every character in a single byte.
+> That worked well if you only needed to handle the Latin alphabet
+> without accented characters,
+> but as soon as you wanted to spell Montréal properly
+> or use Greek or kanji or Klingon,
+> you couldn't fit everything into 8 bits.
+> The modern solution is called Unicode,
+> and there's no better description of it than [Joel Spolsky's][spolsky-unicode].
+> What this means in practice is that we have to convert strings to plain old bytes
+> and vice versa
+> when we send text on the web;
+> almost everyone uses an encoding called UTF-8 for this.
+
+Here's a simple socket client:
+
+```python
+import socket
+import sys
+
+KILOBYTE = 1024
+SERVER_ADDRESS = ("", 8080)
+
+message = sys.argv[1]
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect(SERVER_ADDRESS)
+sock.sendall(bytes(message, "utf-8"))
+print(f"client sent {len(message)} bytes")
+
+received = sock.recv(KILOBYTE)
+print(f"client received {len(received)} bytes: '{str(received, 'utf-8')}'")
+```
+
+From top to bottom, it:
+
+1.  Imports some modules and defines some constants.
+    The most interesting of these is `SERVER_ADDRESS`
+    The empty string `""` for the host means "the current machine";
+    we could also use the string `"localhost"`.
+2.  We use `socket.socket` to create a new socket.
+    The values `AF_INET` and `SOCK_STREAM` specify the protocols we're using;
+    we'll always use those in our examples,
+    so we won't go into details about them.
+3.  We connect to the server...
+4.  ...send our message as a bunch of bytes with `sock.sendall`...
+5.  ...and print a message saying the data's been sent.
+6.  We then read up to a kilobyte from the socket with `sock.recv`.
+    If we were expecting longer messages,
+    we'd keep reading from the socket until there was no more data,
+    but we're trying to keep this example simple.
+7.  Finally, we print another diagnostic message.
+
+The receiving end is a little more complicated:
+
+```python
+import socketserver
+
+
+KILOBYTE = 1024
+SERVER_ADDRESS = ("", 8080)
+
+
+class MyHandler(socketserver.BaseRequestHandler):
+    """The request handler class for our server."""
+
+    def handle(self):
+        """Handle a single request."""
+        data = self.request.recv(KILOBYTE)
+        msg = f"got request from {self.client_address[0]}: {len(data)}"
+        print(msg)
+        self.request.sendall(bytes(msg, "utf-8"))
+
+
+if __name__ == "__main__":
+    server = socketserver.TCPServer(SERVER_ADDRESS, MyHandler)
+    server.serve_forever()
+```
+
+Python's `socketserver` library provides two things:
+a class called `TCPServer` that listens for incoming connections
+and then manages them for us,
+and another class called `BaseRequestHandler`
+that does everything *except* process the incoming data.
+In order to do that,
+we derive a class of our own from `BaseRequestHandler` that provides a `handle` method.
+Every time `TCPServer` gets a new connection
+it creates a new instance of our class
+and calls its `handle` method.
+
+Our `handle` method is the inverse of the code that sends request:
+
+1.  Read up to a kilobyte from `self.request`
+    (which is set up automatically for us in the base class `BaseRequestHandler`).
+2.  Construct and print a diagnostic message.
+3.  Use `self.request` again to send data back to whoever we received the message from.
+
+The easiest way to test this is to open two terminal windows side by side.
+The transcript below shows the sequence of operations side by side:
+
+```
+$ python socket_server.py       |
+                                | $ python socket_client.py "a test message"
+                                | client sent 14 bytes
+got request from 127.0.0.1: 14  |
+                                | client received 30 bytes: 'got request from 127.0.0.1: 14
+```
+
+## HTTP
 
 The Hypertext Transfer Protocol (HTTP) describes one way that
 programs can exchange data over IP.
@@ -109,9 +220,7 @@ Content-Length: 53
 </html>
 ```
 
-## Making Connections
-
-Opening sockets, constructing HTTP requests, and parsing responses is tedious,
+Constructing HTTP requests is tedious,
 so most people use libraries to do most of the work.
 The most popular such library in Python is called [requests][requests].
 
@@ -145,7 +254,7 @@ and `text` is the actual data
 
 ## Hello, Web
 
-We're now ready to write our first simple web server.
+We're now ready to write our first simple HTTP server.
 The basic idea is simple:
 
 1.  Wait for someone to connect to our server and send an HTTP request;
@@ -194,10 +303,8 @@ if __name__ == "__main__":
 
 Let's start at the bottom and work our way up.
 
-1.  `server_address` is a tuple that specifies the host the server is running on
+1.  Again, `SERVER_ADDRESS` that specifies the host the server is running on
     and the port it's listening on.
-    If we use an empty string `""` for the host,
-    it means "the current machine".
 2.  The `HTTPServer` class takes care of parsing requests and sending back responses.
     When we construct it,
     we give it the server address and the name of the class we've written
@@ -250,24 +357,6 @@ The second line appears because
 our browser automatically sends a second request
 for an image file called `/favicon.ico`,
 which it will display as an icon in the address bar if it exists.
-
-> ### Character Encodings
->
-> Once upon a time, computers stored every character in a single byte.
-> That worked well if you only needed to handle the Latin alphabet
-> without accented characters,
-> but as soon as you wanted to spell Montréal properly
-> or use Greek or kanji or Klingon,
-> you couldn't fit everything into 8 bits.
-> The modern solution is called Unicode,
-> and there's no better description of it than [Joel Spolsky's][spolsky-unicode].
-> What this means in practice is that we have to convert strings
-> (which may use several bytes per character)
-> into plain old bytes
-> when we send text on the web.
-> We should also provide a header specifying the encoding that we're using,
-> which in this case is UTF-8:
-> we've left that as an exercise.
 
 [requests]: https://requests.readthedocs.io/
 [spolsky-unicode]: https://www.joelonsoftware.com/2003/10/08/the-absolute-minimum-every-software-developer-absolutely-positively-must-know-about-unicode-and-character-sets-no-excuses/
