@@ -269,5 +269,25 @@ which it will display as an icon in the address bar if it exists.
 > which in this case is UTF-8:
 > we've left that as an exercise.
 
+## Exercises
+
+1.  Modify the server so that it reads HTML pages from disk and returns them.
+    For example, if the client requests `about.html`,
+    the server should read the page `./about.html` and return that content.
+
+2.  Read the documentation for the `requests` library to see how to post data to a server
+    (i.e., how to upload a file)
+    and then (a) write a program that uploads a CSV file using POST
+    and (b) modify the server to accept an uploaded CSV file
+    and return an HTML page that displays that CSV as a table in an HTML page.
+
+Exercise 2 has several moving parts,
+so please ask each other questions and bounce ideas off each other:
+Mia and Mary can reach each other on the merelyuseful Slack,
+and I suggest that the four DG staff form pairs and work together as well.
+Good luck!
+
+This web page will self-destruct in five seconds...
+
 [requests]: https://requests.readthedocs.io/
 [spolsky-unicode]: https://www.joelonsoftware.com/2003/10/08/the-absolute-minimum-every-software-developer-absolutely-positively-must-know-about-unicode-and-character-sets-no-excuses/
