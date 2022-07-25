@@ -7,7 +7,7 @@ the page ./about.html and return that content.
 """
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
-
+import os
 # Page to send back.
 PAGE = """\
 <html>
@@ -29,15 +29,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     # Handle a GET request.
     def do_GET(self,filepath=None):
-        if not(filepath is None):
-            output = bytes(PAGE)
+        if filepath is None:
+            output = bytes(PAGE, "utf-8")
         else:
-            # get files availabled
-            file_map = server.file_map
-            # make sure the page exists
-            assert self.path in file_map, "file {} not found".format(self.path)
+            assert os.path.exists(filepath), "file {} not found".format(filepath)
             # read file
-            output = bytes(self.readfile_local(self.path))
+            output = bytes(self.readfile_local(self.path), "utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Returning page", str(self.path))
