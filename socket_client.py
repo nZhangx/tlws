@@ -1,5 +1,6 @@
 import socket
 import sys
+import requests
 
 KILOBYTE = 1024
 SERVER_ADDRESS = ("", 8080)
