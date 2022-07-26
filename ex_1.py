@@ -29,7 +29,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     # Handle a GET request.
     def do_GET(self,filepath=None):
-        if filepath is None:
+        if not (self.path is None):
             output = bytes(PAGE, "utf-8")
         else:
             assert os.path.exists(filepath), "file {} not found".format(filepath)
