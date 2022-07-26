@@ -9,6 +9,7 @@ the page ./about.html and return that content.
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
 from urllib.parse import urlparse
+import pandas as pd
 # Page to send back.
 PAGE = """\
 <html>
@@ -46,6 +47,18 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header("Returning page", str(self.path))
         self.end_headers()
         self.wfile.write(output)
+
+    # Handle a POST request
+    def do_POST(self):
+        # take in a csv and 
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        content_len = int(self.headers.get('content-length', 0))
+        post_body = str(self.rfile.read(content_len))
+        post_df = pd.read_csv(post_body)
+        df_html = post_df.to_html()
+        self.wfile.write("received post request:<br>{}".format(df_html))
 
 
 if __name__ == "__main__":
