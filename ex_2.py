@@ -14,10 +14,10 @@ upload_csv = "test_upload.csv"
 
 url = 'http://localhost:8080'
 
-file = {'upload_csv':open(upload_csv,'rb')}
-myobj = {'somekey': 'somevalue'}
+files = {'upload_csv':open(upload_csv,'rb')}
+fileval = {'OUT': 'csv'}
 
-x = requests.post(url, json = myobj)
+x = requests.post(url, files=files, data=fileval)
 
 print(x.text)
 
