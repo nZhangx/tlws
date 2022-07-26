@@ -8,6 +8,7 @@ the page ./about.html and return that content.
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
+from urllib.parse import urlparse
 # Page to send back.
 PAGE = """\
 <html>
@@ -24,17 +25,22 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def readfile_local(self,path):
         with open(path,'r') as readfile:
+            compile_str = ""
             flines = readfile.readlines()
-        return flines
+            for line in flines:
+                compile_str += line
+        return compile_str
 
     # Handle a GET request.
-    def do_GET(self,filepath=None):
-        if not (self.path is None):
+    def do_GET(self):
+        query = urlparse(self.path).query
+        query_components = dict(qc.split("=") for qc in query.split("&"))
+        if not('filepath' in query_components):
             output = bytes(PAGE, "utf-8")
         else:
-            assert os.path.exists(filepath), "file {} not found".format(filepath)
+            assert os.path.exists(query_components['filepath']), "file {} not found".format(query_components['filepath'])
             # read file
-            output = bytes(self.readfile_local(self.path), "utf-8")
+            output = bytes(self.readfile_local(query_components['filepath']), "utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Returning page", str(self.path))
